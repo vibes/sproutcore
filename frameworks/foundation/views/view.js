@@ -2676,7 +2676,7 @@ SC.View = SC.Responder.extend(SC.DelegateSupport,
     Specifies whether 3d transforms can be used to move the layer.
   */
   hasAcceleratedLayer: function(){
-    return this.get('wantsAcceleratedLayer') && SC.platform.understandsCSS3DTransforms;
+    return this.get('wantsAcceleratedLayer') && SC.platform.supportsCSSTransforms;
   }.property('wantsAcceleratedLayer').cacheable(),
 
 
@@ -2902,12 +2902,7 @@ SC.View = SC.Responder.extend(SC.DelegateSupport,
     }
 
     if (hasAcceleratedLayer) {
-      // We want at least one to be non-zero
-      if (translateTop || translateLeft) {
-        ret.webkitTransform = 'translate3d('+translateLeft+'px, '+translateTop+'px, 0)';
-      } else {
-        ret.webkitTransform = 'translateZ(0px)';
-      }
+      ret[SC.platform.domCSSPrefix+'Transform'] = 'translateX('+translateLeft+'px) translateY('+translateTop+'px)';
     }
 
     // convert any numbers into a number + "px".
