@@ -131,14 +131,12 @@ SC.Animatable = {
 
   _animatable_didCreateLayer: function(){
     this.resetAnimation();
-    SC.Event.add(this.get('layer'), "webkitTransitionEnd", this, this.transitionEnd);
-    SC.Event.add(this.get('layer'), "transitionend", this, this.transitionEnd);
+    SC.Event.add(this.get('layer'), SC.platform.cssPrefix+"TransitionEnd", this, this.transitionEnd);
     return this._animatable_original_didCreateLayer();
   },
 
   _animatable_willDestroyLayer: function(){
-    SC.Event.remove(this.get('layer'), "webkitTransitionEnd", this, this.transitionEnd);
-    SC.Event.remove(this.get('layer'), "transitionend", this, this.transitionEnd);
+    SC.Event.remove(this.get('layer'), SC.platform.cssPrefix+"TransitionEnd", this, this.transitionEnd);
     return this._animatable_original_willDestroyLayer();
   },
   
@@ -337,7 +335,19 @@ SC.Animatable = {
   styleDidChange: function() {
     this.invokeLast("updateStyle");
   }, // observer set up manually in initMixin to allow live mixins
-  
+
+
+  /**
+    Since transforms can only be animated singly, we don't accelerate the layer unless
+    top and left transitions have the same duration.
+    Not cacheable since transitions may be updated without using a setter.
+  */
+  hasAcceleratedLayer: function(){
+    var leftDuration = this.transitions['left'] && this.transitions['left'].duration,
+        topDuration = this.transitions['top'] && this.transitions['top'].duration;
+    return sc_super() && leftDuration == topDuration;
+  }.property('wantsAcceleratedLayer', 'transitions'),
+
   /**
   Immediately applies styles to elements, and starts any needed transitions.
   
@@ -356,18 +366,23 @@ SC.Animatable = {
     /* SPECIAL CASES (done now because they need to happen whether or not animation will take place) */
     ////**SPECIAL TRANSFORM CASE**////
     var specialTransform = NO, specialTransformValue = "";
-    if (
-      SC.platform.supportsCSSTransforms &&
-      this.transitions["left"] && this.transitions["top"] && 
-      this.transitions["left"].duration === this.transitions["top"].duration &&
-      this.transitions["left"].timing === this.transitions["top"].timing &&
-      (SC.none(newStyle["right"]) || newStyle["right"] === "") &&
-      (SC.none(newStyle["bottom"]) || newStyle["bottom"] === "")
-    ) {
-      specialTransform = YES;
-      this._useSpecialCaseTransform = YES;
-    } else {
-      this._useSpecialCaseTransform = NO;
+    if (this.get('hasAcceleratedLayer')) {
+
+      var nT = newStyle['top'],
+          nB = newStyle['bottom'],
+          nL = newStyle['left'],
+          nR = newStyle['right'];
+
+      // NOTE: This needs to match exactly the conditions in layoutStyles
+      if (
+        (SC.empty(nT) || (!SC.isPercentage(nT) && SC.empty(nB))) &&
+        (SC.empty(nL) || (!SC.isPercentage(nL) && SC.empty(nR)))
+      ) {
+        specialTransform = YES;
+        this._useSpecialCaseTransform = YES;
+      } else {
+        this._useSpecialCaseTransform = NO;
+      }
     }
     ////**/SPECIAL TRANSFORM CASE**////
 
@@ -424,18 +439,18 @@ SC.Animatable = {
       if (specialTransform) {
         specialTransform = YES;
         timing_function = this.cssTimingStringFor(this.transitions["left"]);
-        cssTransitions.push("-webkit-transform " + this.transitions["left"].duration + "s " + timing_function);
+        cssTransitions.push("-"+SC.platform.cssPrefix+"-transform " + this.transitions["left"].duration + "s " + timing_function);
       }
       ////**END SPECIAL TRANSFORM CASE**////
       
       // loop
       for (i in this.transitions) {
         if (!this._cssTransitionFor[i]) continue;
-        
+
         ////**SPECIAL TRANSFORM CASE**////        
         if (specialTransform && (i == "left" || i == "top")) {
           if (this.transitions["left"].action){
-            this._transitionCallbacks["-webkit-transform"] = {
+            this._transitionCallbacks["-"+SC.platform.cssPrefix+"-transform"] = {
               source: this,
               target: (this.transitions["left"].target || this),
               action: this.transitions["left"].action
@@ -443,7 +458,7 @@ SC.Animatable = {
           }
 
           if (this.transitions["top"].action){
-            this._transitionCallbacks["-webkit-transform"] = {
+            this._transitionCallbacks["-"+SC.platform.cssPrefix+"-transform"] = {
               source: this,
               target: (this.transitions["right"].target || this),
               action: this.transitions["right"].action
@@ -616,7 +631,7 @@ SC.Animatable = {
 
     // set CSS transitions very first thing
     if (this._animatableSetCSS != this._last_transition_css) {
-      layer.style["-webkit-transition"] = this._animatableSetCSS;
+      layer.style["-"+SC.platform.cssPrefix+"-transition"] = this._animatableSetCSS;
       layer.style["-moz-transition"] = this._animatableSetCSS;
       this._last_transition_css = this._animatableSetCSS;
       needsRender = YES;
@@ -694,7 +709,7 @@ SC.Animatable = {
     }
     
     // apply transform, accounting for the fact that we _might_ have had a special case
-    style["webkitTransform"] = transform;
+    style[SC.platform.cssPrefix+"Transform"] = transform;
 
     // don't want to set because we don't want updateLayout... again.
     if (updateLayout) {
