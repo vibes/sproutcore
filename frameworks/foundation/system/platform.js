@@ -24,16 +24,14 @@ SC.platform = {
   },
 
   /**
-    Prefix for browser specific CSS attributes.
+    Prefix for browser specific CSS attributes. Calculated later.
   */
-  cssPrefix: (function(){
-    var userAgent = navigator.userAgent.toLowerCase();
-    if ((/webkit/).test(userAgent)) return 'webkit';
-    else if((/opera/).test( userAgent )) return 'opera';
-    else if((/msie/).test( userAgent ) && !(/opera/).test( userAgent )) return 'ms';
-    else if((/mozilla/).test( userAgent ) && !(/(compatible|webkit)/).test( userAgent )) return 'moz';
-    else return null;
-  })(),
+  cssPrefix: null,
+
+  /**
+    Prefix for browsew specific CSS attributes when used in the DOM. Calculated later.
+  */
+  domCSSPrefix: null,
 
   /**
     Whether the browser supports CSS transitions. Calculated later.
@@ -59,6 +57,24 @@ SC.platform = {
 
 };
 
+/* Calculate CSS Prefixes */
+
+(function(){
+  var userAgent = navigator.userAgent.toLowerCase();
+  if ((/webkit/).test(userAgent)) {
+    SC.platform.cssPrefix = 'webkit';
+    SC.platform.domCSSPrefix = 'Webkit';
+  } else if((/opera/).test( userAgent )) {
+    SC.platform.cssPrefix = 'opera';
+    SC.platform.domCSSPrefix = 'O';
+  } else if((/msie/).test( userAgent ) && !(/opera/).test( userAgent )) {
+    SC.platform.cssPrefix = 'ms';
+    SC.platform.domCSSPrefix = 'ms';
+  } else if((/mozilla/).test( userAgent ) && !(/(compatible|webkit)/).test( userAgent )) {
+    SC.platform.cssPrefix = 'moz';
+    SC.platform.domCSSPrefix = 'Moz';
+  };
+})();
 
 /* Calculate transform support */
 
