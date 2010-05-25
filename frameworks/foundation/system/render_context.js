@@ -746,7 +746,7 @@ SC.RenderContext = SC.Builder.create(/** SC.RenderContext.fn */ {
           regex = this._STYLE_REGEX ;
           regex.lastIndex = 0;
           
-          while(match = regex.exec(attr)) styles[match[1].camelize()] = match[2];
+          while(match = regex.exec(attr)) styles[this._camelizeStyleName(match[1])] = match[2];
           
           this._styles = styles;
           this._cloneStyles = NO;
@@ -885,6 +885,20 @@ SC.RenderContext = SC.Builder.create(/** SC.RenderContext.fn */ {
     }
     
     return this ;
+  },
+
+  /** @private
+  */
+  _camelizeStyleName: function(name) {
+    // IE wants the first letter lowercase so we can allow normal behavior
+    var needsCap = name.match(/^-(webkit|moz|o)-/),
+        camelized = name.camelize();
+
+    if (needsCap) {
+      return camelized.substr(0,1).toUpperCase() + camelized.substr(1);
+    } else {
+      return camelized;
+    }
   },
 
   /** @private
