@@ -345,7 +345,14 @@ SC.Animatable = {
   hasAcceleratedLayer: function(){
     var leftDuration = this.transitions['left'] && this.transitions['left'].duration,
         topDuration = this.transitions['top'] && this.transitions['top'].duration;
-    return sc_super() && leftDuration == topDuration;
+
+    if (leftDuration !== topDuration) {
+      return NO;
+    } else if ((topDuration || leftDuration) && !SC.platform.supportsCSSTransitions) {
+      return NO;
+    } else {
+      return sc_super();
+    }
   }.property('wantsAcceleratedLayer', 'transitions'),
 
   /**
@@ -437,9 +444,9 @@ SC.Animatable = {
       // this is a VERY special case. If right or bottom are supplied, can't do it. If left+top need
       // animation at different speeds: can't do it.
       if (specialTransform) {
-        specialTransform = YES;
-        timing_function = this.cssTimingStringFor(this.transitions["left"]);
-        cssTransitions.push("-"+SC.platform.cssPrefix+"-transform " + this.transitions["left"].duration + "s " + timing_function);
+        var transitionForTiming = this.transitions['left'] || this.transitions['top'];
+        timing_function = this.cssTimingStringFor(transitionForTiming);
+        cssTransitions.push("-"+SC.platform.cssPrefix+"-transform " + transitionForTiming.duration + "s " + timing_function);
       }
       ////**END SPECIAL TRANSFORM CASE**////
       
@@ -460,8 +467,8 @@ SC.Animatable = {
           if (this.transitions["top"].action){
             this._transitionCallbacks["-"+SC.platform.cssPrefix+"-transform"] = {
               source: this,
-              target: (this.transitions["right"].target || this),
-              action: this.transitions["right"].action
+              target: (this.transitions["top"].target || this),
+              action: this.transitions["top"].action
             };
           }
           continue;
@@ -682,21 +689,6 @@ SC.Animatable = {
       if (i == "display") continue;
       if (this.holder._layoutStyles.indexOf(i) >= 0)
       {
-        ////**SPECIAL TRANSFORM CASE**////
-        // handle special case for CSS transforms
-        if (this.holder._useSpecialCaseTransform && i === "left") {
-          newLayout[i] = 0;
-          transform += "translateX(" + styles[i] + "px) ";
-          updateLayout = YES;
-          continue;
-        } else if (this.holder._useSpecialCaseTransform && i === "top") {
-          newLayout[i] = 0;
-          transform += "translateY(" + styles[i] + "px) ";
-          updateLayout = YES;
-          continue;
-        }
-        ////**END SPECIAL TRANSFORM CASE**///
-        
         // otherwise, normal layout
         newLayout[i] = styles[i];
         updateLayout = YES;
@@ -707,9 +699,6 @@ SC.Animatable = {
       else style[i] = styles[i];
     }
     
-    // apply transform, accounting for the fact that we _might_ have had a special case
-    style[SC.platform.cssPrefix+"Transform"] = transform;
-
     // don't want to set because we don't want updateLayout... again.
     if (updateLayout) {
       var prev = this.holder.layout;
@@ -1078,11 +1067,6 @@ SC.mixin(SC.Animatable, {
   
   // the current time (a placeholder, really)
   currentTime: new Date().getTime(),
-
-  // global setting deciding whether CSS transitions should be enabled
-  enableCSSTransitions: NO, // automatically calculated. You can override, but only from OUTSIDE.
-  
-  enableCSSTransforms: NO, // automatically calculated (or, will be)
 
   /**
     A hash of stats for any currently running animations. Currently has property
