@@ -2668,7 +2668,7 @@ SC.View = SC.Responder.extend(SC.DelegateSupport,
 
   /**
     Setting wantsAcceleratedLayer to YES will use 3d transforms to move the
-    layer when available.
+    layer when available. On some platforms 3d transforms are hardware accelerated.
   */
   wantsAcceleratedLayer: NO,
 
@@ -2676,7 +2676,7 @@ SC.View = SC.Responder.extend(SC.DelegateSupport,
     Specifies whether 3d transforms can be used to move the layer.
   */
   hasAcceleratedLayer: function(){
-    return this.get('wantsAcceleratedLayer') && SC.platform.supportsCSSTransforms;
+    return this.get('wantsAcceleratedLayer') && SC.platform.supportsCSS3DTransforms;
   }.property('wantsAcceleratedLayer').cacheable(),
 
 
@@ -2902,7 +2902,7 @@ SC.View = SC.Responder.extend(SC.DelegateSupport,
     }
 
     if (hasAcceleratedLayer) {
-      ret[SC.platform.domCSSPrefix+'Transform'] = 'translateX('+translateLeft+'px) translateY('+translateTop+'px)';
+      ret[SC.platform.domCSSPrefix+'Transform'] = 'translate3d('+translateLeft+'px, '+translateTop+'px, 0px)';
     }
 
     // convert any numbers into a number + "px".
