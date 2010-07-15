@@ -115,6 +115,8 @@ SC.TreeController = SC.ObjectController.extend(SC.SelectionSupport,
     if (!objects) return null; // fast track
     
     indexes = objects.contentGroupIndexes(null, objects);
+    if (indexes === null) return null;
+    
     len = objects.get('length');
     while(indexes.contains(idx) && (idx<len)) idx++;
     return idx>=len ? null : objects.objectAt(idx);
